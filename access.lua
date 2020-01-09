@@ -1,11 +1,11 @@
 local _M = {}
 
-local function check(rule,result)
-    local validation = require "resty.validation"
-    local name = rule.name
+local validation = require "resty.validation"
+local cjson = require "cjson"
+
+local function check(rule, result, query_arg, name)
     local type = rule.type
     local required = rule.required
-    local query_arg = kong.request.get_query_arg(name)
     local empty, e = validation.null(query_arg)
     kong.log.err(query_arg)
     kong.log.err(empty)
@@ -28,12 +28,9 @@ local function check(rule,result)
             end
         end
     end
-    return result
 end
 
-
 local function request_validator(conf)
-    local cjson = require "cjson"
     local result = {}
     local query_schema, body_schema = null
     if conf.query_schema then
@@ -42,8 +39,23 @@ local function request_validator(conf)
     if conf.body_schema then
         body_schema = cjson.decode(conf.body_schema)
     end
-    for i, v in ipairs(query_schema) do
-        check(v,result)
+    if query_schema then
+        for i, v in ipairs(query_schema) do
+            local name = v.name
+            local query_arg = kong.request.get_query_arg(name)
+            check(v, result, query_arg, name)
+        end
+    end
+    local body, err, mimetype = kong.request.get_body()
+    if not body then
+        body={}
+    end
+    if body_schema then
+        for i, v in ipairs(body_schema) do
+            local name = v.name
+            local body_arg = body[name]
+            check(v, result, body_arg, name)
+        end
     end
     if table.getn(result) > 0 then
         return kong.response.exit(400, { message = result })
