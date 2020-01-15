@@ -1,7 +1,8 @@
 return {
   no_consumer = true,
   fields = {
-    body_schema = { type = "string", required = false },
-    query_schema= { type = "string", required = false }
+    form_schema = { type = "string", required = false },
+    query_schema= { type = "string", required = false },
+    json_schema = { type = "string", required = false}
   }
 }

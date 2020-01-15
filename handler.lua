@@ -13,6 +13,6 @@ function RequestValidatorHandler:access(conf)
   access.execute(conf)
 end
 
-RequestValidatorHandler.PRIORITY = 1000
+RequestValidatorHandler.PRIORITY = 949
 
 return RequestValidatorHandler
