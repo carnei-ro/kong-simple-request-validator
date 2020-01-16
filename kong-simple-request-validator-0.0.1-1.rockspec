@@ -1,23 +1,25 @@
-package = "kong-upstream-hmac"
-version = "0.0.1-6"
+package = "kong-simple-request-validator"
+version = "0.0.1-1"
 supported_platforms = {"linux", "macosx"}
 source = {
-  url = "git+https://github.com/brightwang/kong-upstream-hmac.git",
-  tag = "0.0.1-6"
+  url = "git+https://github.com/brightwang/kong-simple-request-validator.git",
+  tag = "0.0.1-1"
 }
 description = {
-  summary = "Kong Plugin for Upstream HTTP HMAC Authentication",
-  license = "Apache-2.0",
-  homepage = "https://github.com/brightwang/kong-upstream-hmac"
+  summary = "Kong Plugin for Request Validator",
+  license = "MIT License",
+  homepage = "https://github.com/brightwang/kong-simple-request-validator"
 }
 dependencies = {
-  "lua >= 5.1"
+  "lua >= 5.1",
+  "lua-resty-validation >= 2.7-1",
+  "jsonschema >= 0.5-0"
 }
 build = {
   type = "builtin",
   modules = {
-    ["kong.plugins.kong-upstream-hmac.handler"] = "src/handler.lua",
-    ["kong.plugins.kong-upstream-hmac.schema"] = "src/schema.lua",
-    ["kong.plugins.kong-upstream-hmac.access"] = "src/access.lua",
+    ["kong.plugins.kong-simple-request-validator.handler"] = "src/handler.lua",
+    ["kong.plugins.kong-simple-request-validator.schema"] = "src/schema.lua",
+    ["kong.plugins.kong-simple-request-validator.access"] = "src/access.lua",
   }
 }
