@@ -62,7 +62,7 @@ local function check(rule, result, query_arg, name)
     end
     if min then
         if not empty and type == "number" then
-            local ok, e = validation.optional:min(min)(query_arg)
+            local ok, e = validation.optional:min(min)(tonumber(query_arg))
             if ok == false then
                 table.insert(result, name .. " must >= " .. tostring(min))
             end
@@ -70,14 +70,14 @@ local function check(rule, result, query_arg, name)
     end
     if max then
         if not empty and type == "number" then
-            local ok, e = validation.optional:max(max)(query_arg)
+            local ok, e = validation.optional:max(max)(tonumber(query_arg))
             if ok == false then
                 table.insert(result, name .. " must <= " .. tostring(max))
             end
         end
     end
     if eq then
-        if not empty and type == "number" then
+        if not empty then
             local ok, e = validation.optional:equals(eq)(query_arg)
             if ok == false then
                 table.insert(result, name .. " must == " .. tostring(eq))
@@ -85,7 +85,7 @@ local function check(rule, result, query_arg, name)
         end
     end
     if un_eq then
-        if not empty and type == "number" then
+        if not empty then
             local ok, e = validation.optional:unequals(eq)(query_arg)
             if ok == false then
                 table.insert(result, name .. " must unequal " .. tostring(un_eq))
