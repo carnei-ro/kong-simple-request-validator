@@ -102,43 +102,86 @@ local function check(rule, result, query_arg, name)
     end
 end
 
+local function get_schema(schema)
+    local result = nil
+    if schema then
+        result = cjson.decode(schema)
+    end
+    return result
+end
+
 local function request_validator(conf)
     local result = {}
-    local query_schema, form_schema, json_schema = null
+    local cache = kong.cache
+    local content_type = kong.request.get_header("Content-Type")
+    local cache_prefix = tostring(conf.updated_at)
+
+
+    --local query_schema,form_schema, json_schema = null
+
+    --if conf.query_schema then
+    --    query_schema = cjson.decode(conf.query_schema)
+    --end
+    --if conf.form_schema then
+    --    form_schema = cjson.decode(conf.form_schema)
+    --end
+    --if conf.json_schema then
+    --    json_schema = cjson.decode(conf.json_schema)
+    --end
+
     if conf.query_schema then
-        query_schema = cjson.decode(conf.query_schema)
+        local query_schema, err = cache:get(cache_prefix .. 'query_schema', nil,
+                get_schema, conf.query_schema)
+        --local query_schema = cjson.decode(conf.query_schema)
+        if query_schema then
+            for i, v in ipairs(query_schema) do
+                local name = v.name
+                local query_arg = kong.request.get_query_arg(name)
+                check(v, result, query_arg, name)
+                if table.getn(result) > 0 then
+                    break
+                end
+            end
+        end
     end
+
     if conf.form_schema then
-        form_schema = cjson.decode(conf.form_schema)
+        local form_schema, err = cache:get(cache_prefix .. 'form_schema', nil,
+                get_schema, conf.form_schema)
+        --local form_schema = cjson.decode(conf.form_schema)
+        if table.getn(result) == 0 and (content_type == 'application/x-www-form-urlencoded' or content_type == 'multipart/form-data') and form_schema then
+            local body, err, mimetype = kong.request.get_body()
+            if body then
+                for i, v in ipairs(form_schema) do
+                    local name = v.name
+                    local body_arg = body[name]
+                    check(v, result, body_arg, name)
+                    if table.getn(result) > 0 then
+                        break
+                    end
+                end
+            end
+        end
     end
+    -- kong.log.err(conf.json_schema)
     if conf.json_schema then
-        json_schema = cjson.decode(conf.json_schema)
-    end
-    if query_schema then
-        for i, v in ipairs(query_schema) do
-            local name = v.name
-            local query_arg = kong.request.get_query_arg(name)
-            check(v, result, query_arg, name)
+        local json_schema, err = cache:get(cache_prefix .. 'json_schema', nil,
+                get_schema, conf.json_schema)
+        --local json_schema = cjson.decode(conf.json_schema)
+        --kong.log.err(content_type)
+        if table.getn(result) == 0 and content_type == 'application/json' and json_schema then
+            local body, err, mimetype = kong.request.get_body()
+            --kong.log.err(body)
+            if body then
+                local validator = jsonschema.generate_validator(json_schema)
+                local res, message = validator(body)
+                if not res then
+                    table.insert(result, message)
+                end
+            end
         end
     end
-    local body, err, mimetype = kong.request.get_body()
-    if not body then
-        body = {}
-    end
-    if form_schema then
-        for i, v in ipairs(form_schema) do
-            local name = v.name
-            local body_arg = body[name]
-            check(v, result, body_arg, name)
-        end
-    end
-    if json_schema then
-        local validator = jsonschema.generate_validator(json_schema)
-        local res, message = validator(body)
-        if not res then
-            table.insert(result, message)
-        end
-    end
+
     if table.getn(result) > 0 then
         return kong.response.exit(400, { message = result })
     end
