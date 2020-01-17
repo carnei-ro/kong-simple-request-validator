@@ -110,12 +110,15 @@ local function get_schema(schema)
     return result
 end
 
+local function isTableEmpty(t)
+    return t == nil or next(t) == nil
+end
+
 local function request_validator(conf)
     local result = {}
     local cache = kong.cache
     local content_type = kong.request.get_header("Content-Type")
     local cache_prefix = tostring(conf.updated_at)
-
 
     --local query_schema,form_schema, json_schema = null
 
@@ -149,14 +152,14 @@ local function request_validator(conf)
         local form_schema, err = cache:get(cache_prefix .. 'form_schema', nil,
                 get_schema, conf.form_schema)
         --local form_schema = cjson.decode(conf.form_schema)
-        if table.getn(result) == 0 and (content_type == 'application/x-www-form-urlencoded' or content_type == 'multipart/form-data') and form_schema then
+        if isTableEmpty(result) and (content_type == 'application/x-www-form-urlencoded' or content_type == 'multipart/form-data') and form_schema then
             local body, err, mimetype = kong.request.get_body()
             if body then
                 for i, v in ipairs(form_schema) do
                     local name = v.name
                     local body_arg = body[name]
                     check(v, result, body_arg, name)
-                    if table.getn(result) > 0 then
+                    if not isTableEmpty(result) then
                         break
                     end
                 end
@@ -169,7 +172,7 @@ local function request_validator(conf)
                 get_schema, conf.json_schema)
         --local json_schema = cjson.decode(conf.json_schema)
         --kong.log.err(content_type)
-        if table.getn(result) == 0 and content_type == 'application/json' and json_schema then
+        if isTableEmpty(result) and content_type == 'application/json' and json_schema then
             local body, err, mimetype = kong.request.get_body()
             --kong.log.err(body)
             if body then
@@ -182,7 +185,7 @@ local function request_validator(conf)
         end
     end
 
-    if table.getn(result) > 0 then
+    if not isTableEmpty(result) then
         return kong.response.exit(400, { message = result })
     end
 end
