@@ -107,11 +107,20 @@ local function get_schema(schema)
     if schema then
         result = cjson.decode(schema)
     end
+    --kong.log.err(schema)
+    --kong.log.err(result)
     return result
 end
 
 local function isTableEmpty(t)
     return t == nil or next(t) == nil
+end
+
+local function getOpts()
+    return {
+        ttl = 600,
+        neg_ttl = 600
+    }
 end
 
 local function request_validator(conf)
@@ -120,22 +129,26 @@ local function request_validator(conf)
     local content_type = kong.request.get_header("Content-Type")
     local cache_prefix = tostring(conf.updated_at)
 
-    --local query_schema,form_schema, json_schema = null
+    local res, err = cache:get_bulk(
+            {
+                cache_prefix .. 'query_schema', getOpts(), get_schema, conf.query_schema,
+                cache_prefix .. 'form_schema', getOpts(), get_schema, conf.form_schema,
+                cache_prefix .. 'json_schema', getOpts(), get_schema, conf.json_schema,
+                n = 3 -- specify the number of operations
+            }
+    , { concurrency = 3 })
 
-    --if conf.query_schema then
-    --    query_schema = cjson.decode(conf.query_schema)
-    --end
-    --if conf.form_schema then
-    --    form_schema = cjson.decode(conf.form_schema)
-    --end
-    --if conf.json_schema then
-    --    json_schema = cjson.decode(conf.json_schema)
-    --end
+    local query_schema = res[1]
+    local form_schema = res[4]
+    local json_schema = res[7]
+
+    --kong.log.err('1111')
+    --kong.log.err(cjson.encode(res))
+    --kong.log.err(cjson.encode(query_schema))
+    --kong.log.err(cjson.encode(form_schema))
+    --kong.log.err(cjson.encode(json_schema))
 
     if conf.query_schema then
-        local query_schema, err = cache:get(cache_prefix .. 'query_schema', nil,
-                get_schema, conf.query_schema)
-        --local query_schema = cjson.decode(conf.query_schema)
         if query_schema then
             for i, v in ipairs(query_schema) do
                 local name = v.name
@@ -149,9 +162,6 @@ local function request_validator(conf)
     end
 
     if conf.form_schema then
-        local form_schema, err = cache:get(cache_prefix .. 'form_schema', nil,
-                get_schema, conf.form_schema)
-        --local form_schema = cjson.decode(conf.form_schema)
         if isTableEmpty(result) and (content_type == 'application/x-www-form-urlencoded' or content_type == 'multipart/form-data') and form_schema then
             local body, err, mimetype = kong.request.get_body()
             if body then
@@ -166,15 +176,9 @@ local function request_validator(conf)
             end
         end
     end
-    -- kong.log.err(conf.json_schema)
     if conf.json_schema then
-        local json_schema, err = cache:get(cache_prefix .. 'json_schema', nil,
-                get_schema, conf.json_schema)
-        --local json_schema = cjson.decode(conf.json_schema)
-        --kong.log.err(content_type)
         if isTableEmpty(result) and content_type == 'application/json' and json_schema then
             local body, err, mimetype = kong.request.get_body()
-            --kong.log.err(body)
             if body then
                 local validator = jsonschema.generate_validator(json_schema)
                 local res, message = validator(body)
