@@ -14,9 +14,9 @@ luarocks install kong-simple-request-validator
 ```bash
 curl -X POST http://127.0.0.1:8001/routes/8237b4d5-1cf1-438b-824a-de1f37e59f60/plugins \
     --data "name=kong-simple-request-validator" \
-    --data "config.form_schema=[{"name":"url","type":"string","required":true,"len_max":5}]" \
-    --data "config.query_schema=[{"name":"url","type":"string","required":true,"len_max":6}]" \
-    --data "config.json_schema={"$schema":"http://json-schema.org/draft-04/schema#","type":"object","properties":{"name":{"type":"string"}}}"
+    --data "config.form_schema=[{\"name\":\"url\",\"type\":\"string\",\"required\":true,\"len_max\":5}]" \
+    --data "config.query_schema=[{\"name\":\"url\",\"type\":\"string\",\"required\":true,\"len_max\":6}]" \
+    --data "config.json_schema={\"\$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}}}"
 ```
 
 ### Parameters
