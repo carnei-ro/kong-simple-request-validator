@@ -4,6 +4,17 @@ local validation = require "resty.validation"
 local cjson = require "cjson"
 local jsonschema = require 'jsonschema'
 
+local function mysplit (inputstr, sep)
+    if sep == nil then
+        sep = "%s"
+    end
+    local t = {}
+    for str in string.gmatch(inputstr, "([^" .. sep .. "]+)") do
+        table.insert(t, str)
+    end
+    return t
+end
+
 local function check(rule, result, query_arg, name)
     local type = rule.type
     local required = rule.required
@@ -16,6 +27,10 @@ local function check(rule, result, query_arg, name)
     local eq = rule.eq
     local un_eq = rule.un_eq
     local email = rule.email
+    local oneof = rule.oneof
+    local noneof = rule.noneof
+    local oneofTable = rule.oneofTable
+    local noneofTable = rule.noneofTable
 
     if required then
         if empty then
@@ -33,6 +48,18 @@ local function check(rule, result, query_arg, name)
             local ok, e = validation.number(tonumber(query_arg))
             if ok == false then
                 table.insert(result, name .. " must be number")
+            end
+        end
+        if not empty and type == "integer" then
+            local ok, e = validation.integer(tonumber(query_arg))
+            if ok == false then
+                table.insert(result, name .. " must be integer")
+            end
+        end
+        if not empty and type == "float" then
+            local ok, e = validation.float(tonumber(query_arg))
+            if ok == false then
+                table.insert(result, name .. " must be float")
             end
         end
     end
@@ -100,15 +127,38 @@ local function check(rule, result, query_arg, name)
             end
         end
     end
+    if oneof then
+        if not empty and oneof then
+            kong.log.err(oneof)
+            local ok, e = validation.optional:oneof(table.unpack(oneofTable))(query_arg)
+            if ok == false then
+                table.insert(result, name .. " must be oneof " .. oneof)
+            end
+        end
+    end
+    if noneof then
+        if not empty and noneof then
+            local ok, e = validation.optional:noneof(table.unpack(noneofTable))(query_arg)
+            if ok == false then
+                table.insert(result, name .. " must be noneof " .. noneof)
+            end
+        end
+    end
 end
 
 local function get_schema(schema)
     local result = nil
     if schema then
         result = cjson.decode(schema)
+        for i, v in ipairs(result) do
+            if v.oneof then
+                v.oneofTable = mysplit(v.oneof, ',')
+            end
+            if v.noneof then
+                v.noneofTable = mysplit(v.noneof, ',')
+            end
+        end
     end
-    --kong.log.err(schema)
-    --kong.log.err(result)
     return result
 end
 
