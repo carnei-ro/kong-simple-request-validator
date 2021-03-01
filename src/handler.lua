@@ -1,18 +1,13 @@
-local BasePlugin = require "kong.plugins.base_plugin"
-local access = require "kong.plugins.kong-simple-request-validator.access"
+local plugin_name = ({...})[1]:match("^kong%.plugins%.([^%.]+)")
+local access = require("kong.plugins." .. plugin_name .. ".access")
 
+local plugin = {
+  PRIORITY = 949,
+  VERSION = "0.0.5-1",
+}
 
-local RequestValidatorHandler = BasePlugin:extend()
-
-function RequestValidatorHandler:new()
-  RequestValidatorHandler.super.new(self, "kong-simple-request-validator")
+function plugin:access(plugin_conf)
+  access.execute(plugin_conf)
 end
 
-function RequestValidatorHandler:access(conf)
-  RequestValidatorHandler.super.access(self)
-  access.execute(conf)
-end
-
-RequestValidatorHandler.PRIORITY = 949
-
-return RequestValidatorHandler
+return plugin

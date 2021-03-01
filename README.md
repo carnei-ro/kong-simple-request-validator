@@ -1,12 +1,13 @@
 # kong-simple-request-validator
 
+summary: validates the request before sending it to upstream
+
 ### install
 
 ```bash
 luarocks install lua-resty-validation
 luarocks install jsonschema
 luarocks install kong-simple-request-validator
-
 ```
 
 ### example
@@ -43,16 +44,3 @@ eq | number | N | 如果type为number，等于给定值
 un_eq | number | N | 如果type为number，不等于给定值
 min | number | N | 如果type为number，小于或等于给定值
 max | number | N | 如果type为number，大于或等于给定值
-
-
-
-
-
-
-
-
-
-
-
-
-
